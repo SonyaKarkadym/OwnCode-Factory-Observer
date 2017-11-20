@@ -3,83 +3,78 @@
 const Event = function() {
   this.events = {};
   this.finished = {};
-}
+  this.counted = {};
+};
 
 Event.prototype = {
-
-  on: function(name, fn) {
+  on(name, fn) {
     const event = this.events[name] || [];
     this.events[name] = event;
-    event.push(fn);
+    const count = this.counted[name] || false;
+    this.counted[name] = count;
+    if (count) console.log('Event `"${name}"` has own function\n');
+    else {
+      event.push(fn);
+      this.counted[name] = true;
+    }
     const finished = this.finished[name] || false;
     this.finished[name] = finished;
   },
 
-  unsubscribe: function(name) {
-    delete(this.events[name]);
-},
+  unsubscribe(name) {
+    delete (this.events[name]);
+    delete (this.counted[name]);
+    delete (this.finished[name]);
+  },
 
-  once: function(fn,name,data){
+  once(name, ...args) {
     const event = this.events[name];
     const finished = this.finished[name];
-     const once = fn => {
-      return (...args) => {
-        if(finished) return;
-         let res = (event) ? event.forEach(fn => fn(data)) : null;
-        this.finished[name] = true;
-        return res;
+    if (finished) {
+      console.log('\nYou can call this function only once\n');
+      return;
+    }
+    for (const i in this.events) {
+      if (i === name) {
+        event.forEach(fn => fn(...args));
       }
     }
-  const f = once(fn)();
-},
-
-  unsubscribeAll: function() {
-    delete this.events;
+    this.finished[name] = true;
   },
 
-  send: function(name,data,msg) {
-    for(let i in this.events){
-      if(i === name) console.log('Your message is: ' + msg);
+  unsubscribeAll() {
+    for (const i in this.events) {
+      delete this.events[i];
+      delete this.counted[i];
+      delete this.finished[i];
     }
+  },
+
+  send(name, msg, ...args) {
     const event = this.events[name];
-    if (event) event.forEach(fn => fn(data));
-  },
-
-  count: function() {
-    let count = 0;
-    for (const i in events) {
-      count++;
+    for (const i in this.events) {
+      if (i === name) {
+        console.log(msg + '\n');
+        event.forEach(fn => fn(...args));
+      }
     }
-    return count;
   },
 
-  onTime: function(name,fn,time){
-    this.on(name,fn);
+  count() {
+    let count = 0;
+    for (const i in this.events) count++;
+    console.log('\nAmount of events is: ' + count + '\n');
+  },
+
+  onTime(name, fn, time) {
+    this.on(name, fn);
     setTimeout(() => this.unsubscribe(name), time);
   },
 
-  onceTime: function(fn,name,data,time){
-    this.once(fn,name,data);
+  onceTime(name, time, ...args) {
+    this.once(name, ...args);
     setTimeout(() => this.unsubscribe(name), time);
   }
 };
 
-const sevent = new Event();
-sevent.onceTime('func', data => console.log(`${data} from "on"`),5000);
-sevent.onceTime('func', data => console.log(`${data} from "on"`),5000);
-//sevent.once((data) => {
-//console.log(`${data} from "on"`)},'func',1);
-//sevent.once(x => x++,'func',2);
-setTimeout(() => console.log(sevent),4000);
-sevent.onceTime('click',x => console.log(x++),6000);
-setTimeout(() => console.log(sevent),8000);
-setTimeout(() => console.log(sevent),11000);
-//sevent.send('func',1,'lol');
-// sevent.unsubscribe('func');
- //setTimeout(console.log(sevent),11000);
-//sevent.on('click',x => console.log(x++));
- //sevent.unsubscribe('func');
- //console.log(sevent);
-//sevent.on('click',x => console.log(x--));
-//sevent.once('funcn',1);
-//sevent.once('fn',2);
+module.exports = Event;
